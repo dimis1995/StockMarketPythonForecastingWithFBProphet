@@ -1,4 +1,4 @@
 # StockMarketPythonForecastingWithFBProphet
 
-Made using https://site.financialmodelingprep.com
+Made using https://www.alphavantage.co
 and Facebook Prophet https://facebook.github.io/prophet/

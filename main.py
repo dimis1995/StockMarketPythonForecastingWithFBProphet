@@ -9,8 +9,10 @@ if __name__ == '__main__':
     # url += config.MY_API
     # response = requests.get(url)
 
+    columns = ['open', 'high', 'low', 'close', 'volume']
+
     aapl = pd.read_csv('AAPL.csv')
-    for column in aapl.columns:
+    for column in columns:
         if column == 'Date':
             continue
         dict = {'Date':'ds', column: 'y'}
@@ -26,7 +28,7 @@ if __name__ == '__main__':
         ax.set_title('Apple', size=6)
 
     msft = pd.read_csv('MSFT.csv')
-    for column in msft.columns:
+    for column in columns:
         if column == 'Date':
             continue
         dict = {'Date': 'ds', column: 'y'}
@@ -42,7 +44,7 @@ if __name__ == '__main__':
         ax.set_title('Microsoft', size=6)
 
     ibm = pd.read_csv('IBM.csv')
-    for column in ibm.columns:
+    for column in columns:
         if column == 'Date':
             continue
         dict = {'Date': 'ds', column: 'y'}

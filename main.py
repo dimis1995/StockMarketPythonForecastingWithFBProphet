@@ -1,9 +1,20 @@
 import config
 import requests
 import pandas as pd
+import numpy as np
 from prophet import Prophet
 import matplotlib.pyplot as plt
 from datetime import date, datetime
+
+
+def business_days_difference(date_in_api: str, date_in_dataset: str) -> int:
+    date1 = datetime.strptime(date_in_api, "%Y-%m-%d")
+    try:
+        date2 = datetime.strptime(date_in_dataset, "%m/%d/%Y")
+    except:
+        date2 = datetime.strptime(date_in_dataset, "%Y-%m-%d")
+    return np.busday_count(date2.strftime('%Y-%m-%d'),
+                           date1.strftime('%Y-%m-%d'))
 
 
 def model_and_predict(dataset: pd.DataFrame, title: str, columns: [str]):
@@ -24,22 +35,17 @@ def model_and_predict(dataset: pd.DataFrame, title: str, columns: [str]):
 def update_if_needed(path: str, symbol: str):
     dataset = pd.read_csv(path)
     if str(date.today()) != dataset['Date'][0]:
-        url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol='+symbol+'&apikey='
+        url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=' + symbol + '&apikey='
         url += config.MY_API
         response = requests.get(url)
         response_json = response.json()
         response_json = response_json['Time Series (Daily)']
         days = list(response_json.keys())
         if days[0] != dataset['Date'][0]:
-            last_day = dataset['Date'][0]
-            try:
-                last_day = datetime.strptime(last_day, "%m/%d/%Y")
-            except:
-                last_day = datetime.strptime(last_day, "%Y-%m-%d")
-            difference = datetime.strptime(days[0], "%Y-%m-%d") - last_day
-            if difference.days > 0:
+            difference = business_days_difference(days[0], dataset['Date'][0])
+            if difference > 0:
                 new_entries = []
-                for i in range(0, difference.days):
+                for i in range(0, difference):
                     entry = response_json[days[i]]
                     new_entries.append([days[i],
                                         entry['1. open'],
@@ -48,15 +54,21 @@ def update_if_needed(path: str, symbol: str):
                                         entry['4. close'],
                                         entry['5. volume']])
                 for entry in reversed(new_entries):
-                    dataset.loc[-1] = entry
-                    dataset.index = dataset.index+1
-                    dataset = dataset.sort_index()
+                    try:
+                        dataset.loc[-1] = entry
+                        dataset.index = dataset.index + 1
+                        dataset = dataset.sort_index()
+                    except ValueError:
+                        if dataset.columns[0] == '':
+                            new_entry = [0, entry[0], entry[1], entry[2], entry[3], entry[4], entry[5]]
+                            dataset.loc[-1] = new_entry
+                            dataset.index = dataset.index + 1
+                            dataset = dataset.sort_index()
                 dataset['Date'] = pd.to_datetime(dataset['Date'])
                 dataset.to_csv(path)
 
 
 if __name__ == '__main__':
-
     picked_columns = ['open', 'high', 'low', 'close', 'volume']
 
     update_if_needed('AAPL.csv', 'AAPL')
